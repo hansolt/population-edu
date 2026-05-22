@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>어디서 살까? - 학생</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Jua&family=Nanum+Gothic:wght@400;700;800&display=swap');
+
+  :root {
+    --산들: #4a9e5c;
+    --산들-light: #d4edda;
+    --해솔: #2563a8;
+    --해솔-light: #dbeafe;
+    --대범: #b5451b;
+    --대범-light: #fde8e0;
+    --bg: #fef9f0;
+    --card: #ffffff;
+    --text: #1a1a2e;
+    --muted: #7a7a8a;
+    --radius: 20px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nanum Gothic', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 24px 16px 48px;
+  }
+
+  .top-bar {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .game-title {
+    font-family: 'Jua', sans-serif;
+    font-size: 22px;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+
+  .round-badge {
+    background: var(--text);
+    color: #fff;
+    font-family: 'Jua', sans-serif;
+    font-size: 15px;
+    padding: 6px 14px;
+    border-radius: 30px;
+    display: none;
+  }
+
+  /* LOGIN */
+  .login-card {
+    width: 100%;
+    max-width: 480px;
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 36px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .login-card h2 {
+    font-family: 'Jua', sans-serif;
+    font-size: 26px;
+    color: var(--text);
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .login-card p {
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .input-group label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .input-group input,
+  .input-group select {
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-family: 'Nanum Gothic', sans-serif;
+    font-size: 16px;
+    color: var(--text);
+    background: #fafafa;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .input-group input:focus,
+  .input-group select:focus {
+    border-color: var(--해솔);
+    background: #fff;
+  }
+
+  .btn-enter {
+    background: var(--text);
+    color: #fff;
+    font-family: 'Jua', sans-serif;
+    font-size: 20px;
+    border: none;
+    border-radius: 14px;
+    padding: 16px;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-enter:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-enter:active { transform: translateY(0); }
+
+  /* WAITING */
+  .waiting-card {
+    width: 100%;
+    max-width: 480px;
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 40px 28px;
+    text-align: center;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .waiting-card h2 {
+    font-family: 'Jua', sans-serif;
+    font-size: 24px;
+    color: var(--text);
+  }
+
+  .player-tag {
+    background: #f0f0f5;
+    border-radius: 30px;
+    padding: 10px 22px;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .pulse-dot {
+    width: 14px; height: 14px;
+    background: #4caf50;
+    border-radius: 50%;
+    animation: pulse 1.4s ease-in-out infinite;
+    margin: 4px auto;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.5); opacity: 0.5; }
+  }
+
+  .waiting-card p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+  /* ROUND SELECTION */
+  .round-card {
+    width: 100%;
+    max-width: 480px;
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .event-box {
+    background: #fff8e1;
+    border: 2px solid #f5c842;
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    text-align: center;
+  }
+
+  .event-box .round-label {
+    font-family: 'Jua', sans-serif;
+    font-size: 14px;
+    color: #b8860b;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+
+  .event-box .event-title {
+    font-family: 'Jua', sans-serif;
+    font-size: 22px;
+    color: #1a1a2e;
+    line-height: 1.4;
+  }
+
+  .event-box .event-desc {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #666;
+    line-height: 1.6;
+  }
+
+  .question-box {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px 22px 10px;
+  }
+
+  .question-box h3 {
+    font-family: 'Jua', sans-serif;
+    font-size: 18px;
+    color: var(--text);
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .location-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .loc-btn {
+    border: none;
+    border-radius: 16px;
+    padding: 18px 20px;
+    font-family: 'Jua', sans-serif;
+    font-size: 20px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    text-align: left;
+    position: relative;
+  }
+
+  .loc-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.13); }
+  .loc-btn:active { transform: translateY(0); }
+
+  .loc-btn.산들 { background: var(--산들-light); color: var(--산들); border: 2px solid var(--산들); }
+  .loc-btn.해솔 { background: var(--해솔-light); color: var(--해솔); border: 2px solid var(--해솔); }
+  .loc-btn.대범 { background: var(--대범-light); color: var(--대범); border: 2px solid var(--대범); }
+
+  .loc-btn.selected.산들 { background: var(--산들); color: #fff; }
+  .loc-btn.selected.해솔 { background: var(--해솔); color: #fff; }
+  .loc-btn.selected.대범 { background: var(--대범); color: #fff; }
+
+  .loc-icon { font-size: 28px; }
+
+  .loc-info { display: flex; flex-direction: column; }
+  .loc-name { font-size: 20px; }
+  .loc-sub { font-family: 'Nanum Gothic', sans-serif; font-size: 12px; font-weight: 400; opacity: 0.75; margin-top: 2px; }
+
+  .check-mark {
+    position: absolute;
+    right: 18px;
+    font-size: 22px;
+    display: none;
+  }
+  .loc-btn.selected .check-mark { display: block; }
+
+  .submit-area {
+    padding: 10px 0 4px;
+    text-align: center;
+  }
+
+  .btn-submit {
+    background: var(--text);
+    color: #fff;
+    font-family: 'Jua', sans-serif;
+    font-size: 19px;
+    border: none;
+    border-radius: 14px;
+    padding: 15px 40px;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+    width: 100%;
+  }
+
+  .btn-submit:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* SUBMITTED STATE */
+  .submitted-card {
+    width: 100%;
+    max-width: 480px;
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 40px 28px;
+    text-align: center;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .submitted-icon { font-size: 56px; }
+
+  .submitted-card h2 {
+    font-family: 'Jua', sans-serif;
+    font-size: 22px;
+    color: var(--text);
+  }
+
+  .my-location-tag {
+    border-radius: 30px;
+    padding: 10px 28px;
+    font-family: 'Jua', sans-serif;
+    font-size: 18px;
+  }
+
+  .my-location-tag.산들 { background: var(--산들-light); color: var(--산들); }
+  .my-location-tag.해솔 { background: var(--해솔-light); color: var(--해솔); }
+  .my-location-tag.대범 { background: var(--대범-light); color: var(--대범); }
+
+  .submitted-card p { color: var(--muted); font-size: 14px; }
+
+  /* GAME ENDED */
+  .ended-card {
+    width: 100%;
+    max-width: 480px;
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 40px 28px;
+    text-align: center;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .ended-card h2 {
+    font-family: 'Jua', sans-serif;
+    font-size: 26px;
+    color: var(--text);
+  }
+
+  .ended-card p { color: var(--muted); font-size: 15px; line-height: 1.7; }
+
+  .final-location {
+    border-radius: 30px;
+    padding: 12px 30px;
+    font-family: 'Jua', sans-serif;
+    font-size: 20px;
+  }
+  .final-location.산들 { background: var(--산들-light); color: var(--산들); }
+  .final-location.해솔 { background: var(--해솔-light); color: var(--해솔); }
+  .final-location.대범 { background: var(--대범-light); color: var(--대범); }
+
+  .msg { font-size: 13px; color: var(--muted); margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="game-title">🗺️ 어디서 살까?</div>
+  <div class="round-badge" id="roundBadge">대기 중</div>
+</div>
+
+<!-- 로그인 -->
+<div class="login-card" id="loginCard">
+  <h2>👋 반갑습니다!<br>내 정보를 입력해요</h2>
+  <p>카드에 적힌 <strong>가상의 이름</strong>을 입력하세요.<br>(예: 이농부, 김청년, 박의사)</p>
+  <div class="input-group">
+    <label>페르소나 이름</label>
+    <input type="text" id="nameInput" placeholder="예) 이농부" maxlength="10">
+  </div>
+  <div class="input-group">
+    <label>우리 반</label>
+    <select id="classSelect">
+      <option value="">반을 선택하세요</option>
+      <option value="1">1반</option>
+      <option value="2">2반</option>
+      <option value="3">3반</option>
+      <option value="4">4반</option>
+      <option value="5">5반</option>
+    </select>
+  </div>
+  <button class="btn-enter" onclick="enterGame()">게임 입장하기 →</button>
+</div>
+
+<!-- 대기 -->
+<div class="waiting-card" id="waitingCard">
+  <h2>게임 시작을 기다리는 중...</h2>
+  <div class="player-tag" id="playerTag"></div>
+  <div class="pulse-dot"></div>
+  <p>선생님이 게임을 시작하면<br>자동으로 화면이 바뀝니다.</p>
+</div>
+
+<!-- 라운드 선택 -->
+<div class="round-card" id="roundCard">
+  <div class="event-box">
+    <div class="round-label" id="roundLabel">ROUND 1</div>
+    <div class="event-title" id="eventTitle">이벤트 내용</div>
+    <div class="event-desc" id="eventDesc"></div>
+  </div>
+  <div class="question-box">
+    <h3 id="questionText">지금 나는 어디에 살고 있나요?</h3>
+    <div class="location-btns">
+      <button class="loc-btn 산들" onclick="selectLocation('산들마을')">
+        <span class="loc-icon">🌾</span>
+        <span class="loc-info">
+          <span class="loc-name">산들마을</span>
+          <span class="loc-sub">한적한 농촌 소읍</span>
+        </span>
+        <span class="check-mark">✓</span>
+      </button>
+      <button class="loc-btn 해솔" onclick="selectLocation('해솔시')">
+        <span class="loc-icon">🌊</span>
+        <span class="loc-info">
+          <span class="loc-name">해솔시</span>
+          <span class="loc-sub">바다가 있는 지방 대도시</span>
+        </span>
+        <span class="check-mark">✓</span>
+      </button>
+      <button class="loc-btn 대범" onclick="selectLocation('대범시')">
+        <span class="loc-icon">🏙️</span>
+        <span class="loc-info">
+          <span class="loc-name">대범시</span>
+          <span class="loc-sub">모든 게 모여드는 수도권</span>
+        </span>
+        <span class="check-mark">✓</span>
+      </button>
+    </div>
+    <div class="submit-area">
+      <button class="btn-submit" id="submitBtn" onclick="submitChoice()" disabled>선택 완료!</button>
+    </div>
+  </div>
+</div>
+
+<!-- 제출 완료 대기 -->
+<div class="submitted-card" id="submittedCard">
+  <div class="submitted-icon">✅</div>
+  <h2 id="submittedName">이름</h2>
+  <div class="my-location-tag" id="myLocationTag"></div>
+  <p>선생님이 다음 라운드를 시작하면<br>화면이 자동으로 바뀝니다.</p>
+</div>
+
+<!-- 게임 종료 -->
+<div class="ended-card" id="endedCard">
+  <div style="font-size:56px">🎉</div>
+  <h2>게임이 끝났습니다!</h2>
+  <p>최종적으로 정착한 곳은?</p>
+  <div class="final-location" id="finalLocationTag"></div>
+  <p style="margin-top:8px; font-size:15px; line-height:1.7;">우리의 선택이 모여<br>어떤 인구 흐름이 만들어졌는지<br>함께 이야기해봐요! 🗣️</p>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// Firebase 설정 (나중에 입력)
+// ══════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyDGbhxbZjhjjLEtjokMoKXteKPjXU3mOc4",
+  authDomain: "populationedu-2026.firebaseapp.com",
+  databaseURL: "https://populationedu-2026-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "populationedu-2026",
+  storageBucket: "populationedu-2026.firebasestorage.app",
+  messagingSenderId: "532103337561",
+  appId: "1:532103337561:web:a89232907c485d8d9f4348"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ══════════════════════════════════════════
+// 이벤트 내용 (선생님이 나중에 수정 가능)
+// ══════════════════════════════════════════
+const ROUNDS = [
+  {
+    title: "게임 시작!",
+    desc: "지금 여러분은 어디에 살고 있나요? 현재 살고 있는 곳을 선택해요.",
+    question: "나는 지금 어디에 살고 있나요?"
+  },
+  {
+    title: "📚 대학 입시 결과 발표!",
+    desc: "대범시에 있는 명문 대학에서 합격 통지가 왔습니다. 대학에 가야 하는 학생은 어디로 이동할까요?",
+    question: "이번 라운드가 끝난 후 나는 어디에 살게 될까요?"
+  },
+  {
+    title: "🏭 해솔시에 대기업 공장 설립!",
+    desc: "해솔시에 대기업이 공장을 세우고 직원을 뽑습니다. 일자리를 찾는 청년들은 어디로 갈까요?",
+    question: "이번 라운드가 끝난 후 나는 어디에 살게 될까요?"
+  },
+  {
+    title: "🏥 산들마을 병원이 문을 닫았습니다",
+    desc: "산들마을의 작은 병원이 의사 부족으로 폐업했습니다. 큰 병원이 필요한 사람들은 어디로 이동할까요?",
+    question: "이번 라운드가 끝난 후 나는 어디에 살게 될까요?"
+  },
+  {
+    title: "🎭 문화생활을 원한다!",
+    desc: "공연장, 쇼핑몰, 다양한 음식점이 있는 도시 생활을 원한다면 어디로 이동할까요?",
+    question: "이번 라운드가 끝난 후 나는 어디에 살게 될까요?"
+  },
+  {
+    title: "🏠 집값 폭등! 교육 격차 심화",
+    desc: "대범시의 집값이 크게 올랐습니다. 하지만 좋은 학원과 교육 환경은 여전히 대범시에 집중돼 있습니다.",
+    question: "이번 라운드가 끝난 후 나는 어디에 살게 될까요?"
+  },
+  {
+    title: "🌱 귀농 지원금 지급!",
+    desc: "정부에서 산들마을로 이사오는 청년들에게 월 50만원 지원금을 준다고 합니다. 어디에서 살고 싶으신가요?",
+    question: "이번 라운드가 끝난 후 나는 어디에 살게 될까요?"
+  },
+  {
+    title: "🎓 해솔시 교육 환경 개선!",
+    desc: "해솔시에 새로운 과학고등학교와 혁신학교들이 생겼습니다. 교육을 위해 이동할 가족이 있나요?",
+    question: "이번 라운드가 끝난 후 나는 어디에 살게 될까요?"
+  }
+];
+
+// ══════════════════════════════════════════
+// 상태 변수
+// ══════════════════════════════════════════
+let myName = '';
+let myClass = '';
+let myKey = '';
+let currentRound = 0;
+let selectedLocation = null;
+let gameState = 'waiting'; // waiting | playing | ended
+
+// ══════════════════════════════════════════
+// 입장
+// ══════════════════════════════════════════
+function enterGame() {
+  const name = document.getElementById('nameInput').value.trim();
+  const cls = document.getElementById('classSelect').value;
+  if (!name) { alert('이름을 입력해주세요!'); return; }
+  if (!cls) { alert('반을 선택해주세요!'); return; }
+
+  myName = name;
+  myClass = cls;
+  myKey = name.replace(/[.#$\[\]]/g, '_');
+
+  // Firebase에 등록
+  db.ref(`classes/${myClass}/players/${myKey}`).set({
+    name: myName,
+    location: '산들마을',
+    round: 0,
+    joinedAt: Date.now()
+  });
+
+  showScreen('waitingCard');
+  document.getElementById('playerTag').textContent = `${myClass}반 · ${myName}`;
+  document.getElementById('roundBadge').style.display = 'block';
+
+  // 게임 상태 감지
+  listenGameState();
+}
+
+// ══════════════════════════════════════════
+// Firebase 리스닝
+// ══════════════════════════════════════════
+function listenGameState() {
+  db.ref(`classes/${myClass}/gameState`).on('value', snap => {
+    const state = snap.val();
+    if (!state) return;
+
+    currentRound = state.currentRound || 0;
+    gameState = state.status || 'waiting';
+
+    document.getElementById('roundBadge').textContent =
+      gameState === 'ended' ? '게임 종료' :
+      currentRound === 0 ? '대기 중' : `${currentRound}라운드`;
+
+    if (gameState === 'ended') {
+      showEndScreen();
+      return;
+    }
+
+    if (currentRound > 0) {
+      // 이미 이번 라운드 제출했는지 확인
+      db.ref(`classes/${myClass}/players/${myKey}/round`).once('value', snap2 => {
+        const submittedRound = snap2.val() || 0;
+        if (submittedRound >= currentRound) {
+          showSubmittedScreen();
+        } else {
+          showRoundScreen();
+        }
+      });
+    } else {
+      showScreen('waitingCard');
+    }
+  });
+}
+
+// ══════════════════════════════════════════
+// 지역 선택
+// ══════════════════════════════════════════
+function selectLocation(loc) {
+  selectedLocation = loc;
+  document.querySelectorAll('.loc-btn').forEach(btn => btn.classList.remove('selected'));
+  const cls = loc === '산들마을' ? '산들' : loc === '해솔시' ? '해솔' : '대범';
+  document.querySelectorAll(`.loc-btn.${cls}`).forEach(btn => btn.classList.add('selected'));
+  document.getElementById('submitBtn').disabled = false;
+}
+
+// ══════════════════════════════════════════
+// 제출
+// ══════════════════════════════════════════
+function submitChoice() {
+  if (!selectedLocation) return;
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = '제출 중...';
+
+  db.ref(`classes/${myClass}/players/${myKey}`).update({
+    location: selectedLocation,
+    round: currentRound
+  }).then(() => {
+    showSubmittedScreen();
+  });
+}
+
+// ══════════════════════════════════════════
+// 화면 전환
+// ══════════════════════════════════════════
+function showScreen(id) {
+  ['loginCard','waitingCard','roundCard','submittedCard','endedCard'].forEach(s => {
+    const el = document.getElementById(s);
+    el.style.display = 'none';
+  });
+  document.getElementById(id).style.display = 'flex';
+}
+
+function showRoundScreen() {
+  showScreen('roundCard');
+  selectedLocation = null;
+  document.querySelectorAll('.loc-btn').forEach(btn => btn.classList.remove('selected'));
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('submitBtn').textContent = '선택 완료!';
+
+  const idx = Math.min(currentRound - 1, ROUNDS.length - 1);
+  const round = ROUNDS[idx];
+  document.getElementById('roundLabel').textContent = `ROUND ${currentRound}`;
+  document.getElementById('eventTitle').textContent = round.title;
+  document.getElementById('eventDesc').textContent = round.desc;
+  document.getElementById('questionText').textContent = round.question;
+}
+
+function showSubmittedScreen() {
+  showScreen('submittedCard');
+  const cls = selectedLocation === '산들마을' ? '산들' : selectedLocation === '해솔시' ? '해솔' : '대범';
+  const tag = document.getElementById('myLocationTag');
+  tag.textContent = selectedLocation || '선택 완료';
+  tag.className = `my-location-tag ${cls}`;
+  document.getElementById('submittedName').textContent = `${myName} ✓`;
+}
+
+function showEndScreen() {
+  db.ref(`classes/${myClass}/players/${myKey}/location`).once('value', snap => {
+    const loc = snap.val() || '산들마을';
+    showScreen('endedCard');
+    const cls = loc === '산들마을' ? '산들' : loc === '해솔시' ? '해솔' : '대범';
+    const tag = document.getElementById('finalLocationTag');
+    tag.textContent = loc;
+    tag.className = `final-location ${cls}`;
+  });
+}
+</script>
+</body>
+</html>
